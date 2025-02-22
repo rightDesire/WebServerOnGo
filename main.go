@@ -9,18 +9,20 @@ import (
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 	var taskStruct Task
 
-	err := json.NewDecoder(r.Body).Decode(&taskStruct)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&taskStruct); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	DB.Create(&taskStruct)
-
-	err = json.NewEncoder(w).Encode(&taskStruct)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	result := DB.Create(&taskStruct)
+	if result.Error != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(&taskStruct); err != nil {
+		http.Error(w, "Encoding error", http.StatusInternalServerError)
 	}
 }
 
@@ -28,10 +30,9 @@ func GetTask(w http.ResponseWriter, _ *http.Request) {
 	var tasks []Task
 	DB.Find(&tasks)
 
-	err := json.NewEncoder(w).Encode(&tasks)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(tasks); err != nil {
+		http.Error(w, "Encoding error", http.StatusInternalServerError)
 	}
 }
 
