@@ -7,23 +7,30 @@ import (
 	"net/http"
 )
 
+func sendErrorResponse(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	json.NewEncoder(w).Encode(map[string]string{"message": message})
+}
+
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 	var req Task
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
 	result := DB.Create(&req)
 	if result.Error != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, "Database error")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(&req); err != nil {
-		http.Error(w, "Encoding error", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, "Encoding error")
 	}
 }
 
@@ -33,7 +40,7 @@ func GetTask(w http.ResponseWriter, _ *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(tasks); err != nil {
-		http.Error(w, "Encoding error", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, "Encoding error")
 	}
 }
 
@@ -49,7 +56,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	// Считываем тело запроса в сырую форму (байты)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, "Failed to read request body")
 		return
 	}
 	defer r.Body.Close()
@@ -61,40 +68,40 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	// Использую json.RawMessage, т.к. значения на данном этапе не требуются. Оптимизация декодирования
 	var rawData map[string]json.RawMessage
 	if err := json.Unmarshal(body, &rawData); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
 	// Проверяем, что пришёл ровно один ключ — "is_done"
 	if len(rawData) != 1 {
-		http.Error(w, "Only 'is_done' field is allowed", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, "Only 'is_done' field is allowed")
 		return
 	}
 	if _, ok := rawData["is_done"]; !ok {
-		http.Error(w, "Only 'is_done' field is allowed", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, "Only 'is_done' field is allowed")
 		return
 	}
 
 	// Теперь декодируем значение "is_done" в req
 	if err := json.Unmarshal(rawData["is_done"], &req.IsDone); err != nil {
-		http.Error(w, "Invalid 'is_done' value", http.StatusBadRequest)
+		sendErrorResponse(w, http.StatusBadRequest, "Invalid 'is_done' value")
 		return
 	}
 
 	result := DB.Model(&Task{}).Where("ID = ?", id).Update("is_done", req.IsDone)
 	if result.Error != nil {
-		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, "Failed to update task")
 		return
 	}
 
 	if err := DB.Where("ID = ?", id).First(&task).Error; err != nil {
-		http.Error(w, "Task not found", http.StatusNotFound)
+		sendErrorResponse(w, http.StatusNotFound, "Task not found")
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(task); err != nil {
-		http.Error(w, "Encoding error", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, "Encoding error")
 	}
 }
 
@@ -103,7 +110,7 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	result := DB.Model(&Task{}).Where("ID = ?", id).Delete(&Task{})
 	if result.Error != nil {
-		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		sendErrorResponse(w, http.StatusInternalServerError, "Failed to delete task")
 	}
 
 	w.WriteHeader(http.StatusNoContent)
