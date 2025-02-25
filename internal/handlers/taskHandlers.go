@@ -54,12 +54,7 @@ func (h *Handler) GetTasksHandler(w http.ResponseWriter, _ *http.Request) {
 func (h *Handler) PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	// Анонимная структура
-	var req struct {
-		IsDone bool `json:"is_done"`
-	}
-
-	var task taskService.Task
+	var req taskService.Task
 	tempId := mux.Vars(r)["id"]
 	id, err := utils.StringToInt(tempId)
 	if err != nil {
@@ -100,14 +95,14 @@ func (h *Handler) PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err = h.Service.UpdateTaskByID(id, task)
+	task, err := h.Service.UpdateTaskByID(id, req)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			utils.SendErrorResponse(w, http.StatusNotFound, "Task not found")
-			return
+		default:
+			utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to delete task")
 		}
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to update task")
-		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -123,7 +118,12 @@ func (h *Handler) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 		utils.SendErrorResponse(w, http.StatusInternalServerError, "Conversion error")
 	}
 	if err := h.Service.DeleteTaskByID(id); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to delete task")
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			utils.SendErrorResponse(w, http.StatusNotFound, "Task not found")
+		default:
+			utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to delete task")
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }

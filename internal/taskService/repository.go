@@ -35,20 +35,26 @@ func (r *taskRepository) GetAllTasks() ([]Task, error) {
 }
 
 func (r *taskRepository) UpdateTaskByID(id uint, task Task) (Task, error) {
+	var updateTask Task
 	result := r.db.Model(&Task{}).Where("ID = ?", id).Update("is_done", task.IsDone)
 	if result.Error != nil {
 		return Task{}, result.Error
 	}
-	if err := r.db.Where("ID = ?", id).First(&task).Error; err != nil {
-		return Task{}, err
+	result = r.db.Where("ID = ?", id).First(&updateTask)
+	if result.Error != nil {
+		return Task{}, result.Error
 	}
-	return task, nil
+	return updateTask, nil
 }
 
 func (r *taskRepository) DeleteTaskByID(id uint) error {
-	result := r.db.Model(&Task{}).Where("ID = ?", id).Delete(&Task{})
+	var task Task
+	result := r.db.Model(&Task{}).Where("ID = ?", id).Delete(&task)
 	if result.Error != nil {
 		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }
