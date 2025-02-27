@@ -1,129 +1,108 @@
 package handlers
 
 import (
-	"WebServer/internal/taskService"
-	"WebServer/pkg/utils"
-	"encoding/json"
+	"WebServer/internal/tasksService"
+	"WebServer/internal/web/tasks"
+	"context"
 	"errors"
-	"github.com/gorilla/mux"
 	"gorm.io/gorm"
-	"io"
-	"net/http"
 )
 
 type Handler struct {
-	Service *taskService.TaskService
+	Service *tasksService.TaskService
 }
 
 // ctor
-func NewHandler(service *taskService.TaskService) *Handler {
+func NewHandler(service *tasksService.TaskService) *Handler {
 	return &Handler{
 		Service: service,
 	}
 }
 
-func (h *Handler) PostTaskHandler(w http.ResponseWriter, r *http.Request) {
-	var req taskService.Task
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid JSON")
-		return
-	}
-	task, err := h.Service.CreateTask(req)
+func (h *Handler) GetApiTasks(ctx context.Context, request tasks.GetApiTasksRequestObject) (tasks.GetApiTasksResponseObject, error) {
+	// Получение всех задач из сервиса
+	allTasks, err := h.Service.GetAllTasks()
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Database error")
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(&task); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Encoding error")
-	}
-}
-
-func (h *Handler) GetTasksHandler(w http.ResponseWriter, _ *http.Request) {
-	tasks, err := h.Service.GetAllTasks()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(tasks); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Encoding error")
-	}
-}
-
-func (h *Handler) PatchTaskHandler(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-
-	var req taskService.Task
-	tempId := mux.Vars(r)["id"]
-	id, err := utils.StringToInt(tempId)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Conversion error")
+		return nil, err
 	}
 
-	// Считываем тело запроса в сырую форму (байты)
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Failed to read request body")
-		return
-	}
-
-	// Парсим body в map[string]json.RawMessage,
-	// чтобы увидеть, какие ключи (поля) пришли
-	// json.Unmarshal – распарсит байтовый массив JSON в любой GO-тип
-	// json.RawMessage – необработанное значение JSON
-	// Использую json.RawMessage, т.к. значения на данном этапе не требуются. Оптимизация декодирования
-	var rawData map[string]json.RawMessage
-	if err := json.Unmarshal(body, &rawData); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid JSON")
-		return
-	}
-
-	// Проверяем, что пришёл ровно один ключ — "is_done"
-	if len(rawData) != 1 {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Only 'is_done' field is allowed")
-		return
-	}
-	if _, ok := rawData["is_done"]; !ok {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Only 'is_done' field is allowed")
-		return
-	}
-
-	// Теперь декодируем значение "is_done" в req
-	if err := json.Unmarshal(rawData["is_done"], &req.IsDone); err != nil {
-		utils.SendErrorResponse(w, http.StatusBadRequest, "Invalid 'is_done' value")
-		return
-	}
-
-	task, err := h.Service.UpdateTaskByID(id, req)
-	if err != nil {
-		switch {
-		case errors.Is(err, gorm.ErrRecordNotFound):
-			utils.SendErrorResponse(w, http.StatusNotFound, "Task not found")
-		default:
-			utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to delete task")
+	// Создаем переменную, которую мы потом передадим в качестве ответа
+	response := tasks.GetApiTasks200JSONResponse{} // Заполняем слайс response всеми задачами из БД
+	for _, tsk := range allTasks {
+		task := tasks.Task{
+			Id:     &tsk.ID,
+			Task:   &tsk.Task,
+			IsDone: tsk.IsDone,
 		}
+		response = append(response, task)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(task); err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Encoding error")
-	}
+	return response, nil
 }
 
-func (h *Handler) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
-	tempId := mux.Vars(r)["id"]
-	id, err := utils.StringToInt(tempId)
+func (h *Handler) PostApiTasks(ctx context.Context, request tasks.PostApiTasksRequestObject) (tasks.PostApiTasksResponseObject, error) {
+	// Распаковываем тело запроса напрямую, без декодера!
+	taskRequest := request.Body
+	// Обращаемся к сервису и создаем задачу
+	taskToCreate := tasksService.Task{
+		Task:   *taskRequest.Task,
+		IsDone: taskRequest.IsDone,
+	}
+	createdTask, err := h.Service.CreateTask(taskToCreate)
+
 	if err != nil {
-		utils.SendErrorResponse(w, http.StatusInternalServerError, "Conversion error")
+		return nil, err
 	}
-	if err := h.Service.DeleteTaskByID(id); err != nil {
-		switch {
-		case errors.Is(err, gorm.ErrRecordNotFound):
-			utils.SendErrorResponse(w, http.StatusNotFound, "Task not found")
-		default:
-			utils.SendErrorResponse(w, http.StatusInternalServerError, "Failed to delete task")
+	// создаем структуру ответа
+	response := tasks.PostApiTasks201JSONResponse{
+		Id:     &createdTask.ID,
+		Task:   &createdTask.Task,
+		IsDone: createdTask.IsDone,
+	}
+
+	return response, nil
+}
+
+func (h *Handler) PatchApiTasksId(ctx context.Context, request tasks.PatchApiTasksIdRequestObject) (tasks.PatchApiTasksIdResponseObject, error) {
+	taskRequest := request.Body
+	taskToUpdate := tasksService.Task{}
+
+	if taskRequest.Task != nil {
+		taskToUpdate.Task = *taskRequest.Task
+	}
+	if taskRequest.IsDone != nil {
+		taskToUpdate.IsDone = taskRequest.IsDone
+	}
+
+	task, err := h.Service.UpdateTaskByID(request.Id, taskToUpdate)
+	if err != nil {
+		if errors.Is(err, tasksService.ErrNoFieldsToUpdate) {
+			errorMsg := "No fields to update"
+			return tasks.PatchApiTasksId400JSONResponse{Message: &errorMsg}, nil
 		}
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return tasks.PatchApiTasksId404Response{}, nil
+		}
+		return nil, err
 	}
-	w.WriteHeader(http.StatusNoContent)
+
+	response := tasks.PatchApiTasksId200JSONResponse{
+		Id:     &task.ID,
+		Task:   &task.Task,
+		IsDone: task.IsDone,
+	}
+
+	return response, nil
+}
+
+func (h *Handler) DeleteApiTasksId(ctx context.Context, request tasks.DeleteApiTasksIdRequestObject) (tasks.DeleteApiTasksIdResponseObject, error) {
+	if err := h.Service.DeleteTaskByID(request.Id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return tasks.DeleteApiTasksId404Response{}, nil
+		}
+		return nil, err
+	}
+
+	return tasks.DeleteApiTasksId204Response{}, nil
 }

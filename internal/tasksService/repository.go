@@ -1,6 +1,7 @@
-package taskService
+package tasksService
 
 import (
+	"errors"
 	"gorm.io/gorm"
 )
 
@@ -20,6 +21,8 @@ func NewTaskRepository(db *gorm.DB) *taskRepository {
 	return &taskRepository{db: db}
 }
 
+var ErrNoFieldsToUpdate = errors.New("no fields to update")
+
 func (r *taskRepository) CreateTask(task Task) (Task, error) {
 	result := r.db.Create(&task)
 	if result.Error != nil {
@@ -36,14 +39,33 @@ func (r *taskRepository) GetAllTasks() ([]Task, error) {
 
 func (r *taskRepository) UpdateTaskByID(id uint, task Task) (Task, error) {
 	var updateTask Task
-	result := r.db.Model(&Task{}).Where("ID = ?", id).Update("is_done", task.IsDone)
+	updateData := make(map[string]interface{})
+
+	if task.Task != "" {
+		updateData["task"] = task.Task
+	}
+	if task.IsDone != nil {
+		updateData["is_done"] = task.IsDone
+	}
+
+	if len(updateData) == 0 {
+		return Task{}, ErrNoFieldsToUpdate
+	}
+
+	result := r.db.Model(&Task{}).Where("ID = ?", id).Updates(updateData)
 	if result.Error != nil {
 		return Task{}, result.Error
 	}
+
+	if result.RowsAffected == 0 {
+		return Task{}, gorm.ErrRecordNotFound
+	}
+
 	result = r.db.Where("ID = ?", id).First(&updateTask)
 	if result.Error != nil {
 		return Task{}, result.Error
 	}
+
 	return updateTask, nil
 }
 
