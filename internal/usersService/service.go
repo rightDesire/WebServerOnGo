@@ -10,18 +10,12 @@ func NewService(repo *userRepository) *UserService {
 	}
 }
 
-func (s *UserService) CreateUser(user User) (User, error) {
+func (s *UserService) CreateUser(user User) (User, error) { return s.repo.CreateUser(user) }
 
-}
-
-func (s *UserService) GetAllUsers() ([]User, error) {
-
-}
+func (s *UserService) GetAllUsers() ([]User, error) { return s.repo.GetAllUsers() }
 
 func (s *UserService) UpdateUserByID(id uint, user User) (User, error) {
-
+	return s.repo.UpdateUserByID(id, user)
 }
 
-func (s *UserService) DeleteUserByID(id uint) error {
-
-}
+func (s *UserService) DeleteUserByID(id uint) error { return s.repo.DeleteUserByID(id) }

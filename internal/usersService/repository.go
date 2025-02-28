@@ -20,17 +20,21 @@ func NewRepository(db *gorm.DB) *userRepository {
 }
 
 func (repo *userRepository) CreateUser(user User) (User, error) {
-
+	//TODO implement me
+	panic("implement me")
 }
 
 func (repo *userRepository) GetAllUsers() ([]User, error) {
-
+	//TODO implement me
+	panic("implement me")
 }
 
 func (repo *userRepository) UpdateUserByID(id uint, user User) (User, error) {
-
+	//TODO implement me
+	panic("implement me")
 }
 
 func (repo *userRepository) DeleteUserByID(id uint) error {
-
+	//TODO implement me
+	panic("implement me")
 }

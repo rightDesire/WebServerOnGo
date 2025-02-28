@@ -150,19 +150,19 @@ paths:
               $ref: '#/components/schemas/User'
       responses:
         '200':
-          description: The updated task
+          description: The updated user
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
         "404":
-          description: Task not found
+          description: User not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/MsgResponse"
         "400":
-          description: Bad request for update task
+          description: Bad request for update user
           content:
             application/json:
               schema:
@@ -180,13 +180,13 @@ paths:
             format: uint
       responses:
         '200':
-          description: Task deleted
+          description: User deleted
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/MsgResponse"
         "404":
-          description: Task not found
+          description: User not found
           content:
             application/json:
               schema:
