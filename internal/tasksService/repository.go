@@ -1,7 +1,7 @@
 package tasksService
 
 import (
-	"errors"
+	"WebServer/internal/errorMessages"
 	"gorm.io/gorm"
 )
 
@@ -20,8 +20,6 @@ type taskRepository struct {
 func NewRepository(db *gorm.DB) *taskRepository {
 	return &taskRepository{db: db}
 }
-
-var ErrNoFieldsToUpdate = errors.New("no fields to update")
 
 func (r *taskRepository) CreateTask(task Task) (Task, error) {
 	result := r.db.Create(&task)
@@ -49,7 +47,7 @@ func (r *taskRepository) UpdateTaskByID(id uint, task Task) (Task, error) {
 	}
 
 	if len(updateData) == 0 {
-		return Task{}, ErrNoFieldsToUpdate
+		return Task{}, errorMessages.ErrNoFieldsToUpdate
 	}
 
 	result := r.db.Model(&Task{}).Where("ID = ?", id).Updates(updateData)
@@ -70,8 +68,7 @@ func (r *taskRepository) UpdateTaskByID(id uint, task Task) (Task, error) {
 }
 
 func (r *taskRepository) DeleteTaskByID(id uint) error {
-	var task Task
-	result := r.db.Model(&Task{}).Where("ID = ?", id).Delete(&task)
+	result := r.db.Model(&Task{}).Where("ID = ?", id).Delete(&Task{})
 	if result.Error != nil {
 		return result.Error
 	}
