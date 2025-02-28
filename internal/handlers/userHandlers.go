@@ -71,11 +71,16 @@ func (h UserHandler) DeleteApiUsersId(ctx context.Context, request users.DeleteA
 
 func (h UserHandler) PatchApiUsersId(ctx context.Context, request users.PatchApiUsersIdRequestObject) (users.PatchApiUsersIdResponseObject, error) {
 	userRequest := request.Body
-	userToCreate := usersService.User{
-		Email:    *userRequest.Email,
-		Password: *userRequest.Password,
+	userToUpdate := usersService.User{}
+
+	if userRequest.Email != nil {
+		userToUpdate.Email = *userRequest.Email
 	}
-	data, err := h.Service.UpdateUserByID(request.Id, userToCreate)
+	if userRequest.Password != nil {
+		userToUpdate.Password = *userRequest.Password
+	}
+
+	data, err := h.Service.UpdateUserByID(request.Id, userToUpdate)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			errorMsg := "User not found"
