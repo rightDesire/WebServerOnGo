@@ -17,7 +17,7 @@ type taskRepository struct {
 }
 
 // ctor
-func NewTaskRepository(db *gorm.DB) *taskRepository {
+func NewRepository(db *gorm.DB) *taskRepository {
 	return &taskRepository{db: db}
 }
 

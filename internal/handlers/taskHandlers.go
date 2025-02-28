@@ -8,18 +8,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type Handler struct {
+type TaskHandler struct {
 	Service *tasksService.TaskService
 }
 
 // ctor
-func NewHandler(service *tasksService.TaskService) *Handler {
-	return &Handler{
+func NewTaskHandler(service *tasksService.TaskService) *TaskHandler {
+	return &TaskHandler{
 		Service: service,
 	}
 }
 
-func (h *Handler) GetApiTasks(ctx context.Context, request tasks.GetApiTasksRequestObject) (tasks.GetApiTasksResponseObject, error) {
+func (h *TaskHandler) GetApiTasks(ctx context.Context, request tasks.GetApiTasksRequestObject) (tasks.GetApiTasksResponseObject, error) {
 	// Получение всех задач из сервиса
 	allTasks, err := h.Service.GetAllTasks()
 	if err != nil {
@@ -40,7 +40,7 @@ func (h *Handler) GetApiTasks(ctx context.Context, request tasks.GetApiTasksRequ
 	return response, nil
 }
 
-func (h *Handler) PostApiTasks(ctx context.Context, request tasks.PostApiTasksRequestObject) (tasks.PostApiTasksResponseObject, error) {
+func (h *TaskHandler) PostApiTasks(ctx context.Context, request tasks.PostApiTasksRequestObject) (tasks.PostApiTasksResponseObject, error) {
 	// Распаковываем тело запроса напрямую, без декодера!
 	taskRequest := request.Body
 	// Обращаемся к сервису и создаем задачу
@@ -63,7 +63,7 @@ func (h *Handler) PostApiTasks(ctx context.Context, request tasks.PostApiTasksRe
 	return response, nil
 }
 
-func (h *Handler) PatchApiTasksId(ctx context.Context, request tasks.PatchApiTasksIdRequestObject) (tasks.PatchApiTasksIdResponseObject, error) {
+func (h *TaskHandler) PatchApiTasksId(ctx context.Context, request tasks.PatchApiTasksIdRequestObject) (tasks.PatchApiTasksIdResponseObject, error) {
 	taskRequest := request.Body
 	taskToUpdate := tasksService.Task{}
 
@@ -97,7 +97,7 @@ func (h *Handler) PatchApiTasksId(ctx context.Context, request tasks.PatchApiTas
 	return response, nil
 }
 
-func (h *Handler) DeleteApiTasksId(ctx context.Context, request tasks.DeleteApiTasksIdRequestObject) (tasks.DeleteApiTasksIdResponseObject, error) {
+func (h *TaskHandler) DeleteApiTasksId(ctx context.Context, request tasks.DeleteApiTasksIdRequestObject) (tasks.DeleteApiTasksIdResponseObject, error) {
 	if err := h.Service.DeleteTaskByID(request.Id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			errorMsg := "Task not found"
