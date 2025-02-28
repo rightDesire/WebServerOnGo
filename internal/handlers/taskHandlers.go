@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"WebServer/internal/errorMessages"
 	"WebServer/internal/tasksService"
 	"WebServer/internal/web/tasks"
 	"context"
@@ -76,7 +77,7 @@ func (h *TaskHandler) PatchApiTasksId(ctx context.Context, request tasks.PatchAp
 
 	task, err := h.Service.UpdateTaskByID(request.Id, taskToUpdate)
 	if err != nil {
-		if errors.Is(err, tasksService.ErrNoFieldsToUpdate) {
+		if errors.Is(err, errorMessages.ErrNoFieldsToUpdate) {
 			errorMsg := "No fields to update"
 			return tasks.PatchApiTasksId400JSONResponse{Message: &errorMsg}, nil
 		}
