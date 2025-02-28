@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"WebServer/internal/errorMessages"
 	"WebServer/internal/usersService"
 	"WebServer/internal/web/users"
 	"context"
@@ -65,8 +66,7 @@ func (h UserHandler) DeleteApiUsersId(ctx context.Context, request users.DeleteA
 		}
 		return nil, err
 	}
-	errorMsg := "User deleted"
-	return users.DeleteApiUsersId200JSONResponse{Message: &errorMsg}, nil
+	return users.DeleteApiUsersId204Response{}, nil
 }
 
 func (h UserHandler) PatchApiUsersId(ctx context.Context, request users.PatchApiUsersIdRequestObject) (users.PatchApiUsersIdResponseObject, error) {
@@ -82,6 +82,10 @@ func (h UserHandler) PatchApiUsersId(ctx context.Context, request users.PatchApi
 
 	data, err := h.Service.UpdateUserByID(request.Id, userToUpdate)
 	if err != nil {
+		if errors.Is(err, errorMessages.ErrNoFieldsToUpdate) {
+			errorMsg := "No fields to update"
+			return users.PatchApiUsersId400JSONResponse{Message: &errorMsg}, nil
+		}
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			errorMsg := "User not found"
 			return users.PatchApiUsersId404JSONResponse{Message: &errorMsg}, nil

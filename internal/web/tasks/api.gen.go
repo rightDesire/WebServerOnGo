@@ -179,13 +179,12 @@ type DeleteApiTasksIdResponseObject interface {
 	VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteApiTasksId200JSONResponse MsgResponse
+type DeleteApiTasksId204Response struct {
+}
 
-func (response DeleteApiTasksId200JSONResponse) VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
+func (response DeleteApiTasksId204Response) VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
 }
 
 type DeleteApiTasksId404JSONResponse MsgResponse

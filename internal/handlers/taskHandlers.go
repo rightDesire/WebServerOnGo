@@ -6,6 +6,7 @@ import (
 	"WebServer/internal/web/tasks"
 	"context"
 	"errors"
+	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
@@ -81,10 +82,13 @@ func (h *TaskHandler) PatchApiTasksId(ctx context.Context, request tasks.PatchAp
 			errorMsg := "No fields to update"
 			return tasks.PatchApiTasksId400JSONResponse{Message: &errorMsg}, nil
 		}
-
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			errorMsg := "Task not found"
 			return tasks.PatchApiTasksId404JSONResponse{Message: &errorMsg}, nil
+		}
+		if errors.Is(err, echo.ErrBadRequest) {
+			errorMsg := "Bad request for update user"
+			return tasks.PatchApiTasksId400JSONResponse{Message: &errorMsg}, nil
 		}
 		return nil, err
 	}
@@ -107,6 +111,5 @@ func (h *TaskHandler) DeleteApiTasksId(ctx context.Context, request tasks.Delete
 		return nil, err
 	}
 
-	errorMsg := "Task deleted"
-	return tasks.DeleteApiTasksId200JSONResponse{Message: &errorMsg}, nil
+	return tasks.DeleteApiTasksId204Response{}, nil
 }
