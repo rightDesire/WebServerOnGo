@@ -14,8 +14,8 @@ import (
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"
 )
 
-// ErrorResponse defines model for ErrorResponse.
-type ErrorResponse struct {
+// MsgResponse defines model for MsgResponse.
+type MsgResponse struct {
 	Message *string `json:"message,omitempty"`
 }
 
@@ -40,10 +40,10 @@ type ServerInterface interface {
 	// Create a new task
 	// (POST /api/tasks)
 	PostApiTasks(ctx echo.Context) error
-	// Delete a task
+	// Delete task
 	// (DELETE /api/tasks/{id})
 	DeleteApiTasksId(ctx echo.Context, id uint) error
-	// Update a task
+	// Update task
 	// (PATCH /api/tasks/{id})
 	PatchApiTasksId(ctx echo.Context, id uint) error
 }
@@ -179,20 +179,22 @@ type DeleteApiTasksIdResponseObject interface {
 	VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error
 }
 
-type DeleteApiTasksId204Response struct {
+type DeleteApiTasksId200JSONResponse MsgResponse
+
+func (response DeleteApiTasksId200JSONResponse) VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-func (response DeleteApiTasksId204Response) VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
-	return nil
-}
+type DeleteApiTasksId404JSONResponse MsgResponse
 
-type DeleteApiTasksId404Response struct {
-}
-
-func (response DeleteApiTasksId404Response) VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error {
+func (response DeleteApiTasksId404JSONResponse) VisitDeleteApiTasksIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type PatchApiTasksIdRequestObject struct {
@@ -213,7 +215,7 @@ func (response PatchApiTasksId200JSONResponse) VisitPatchApiTasksIdResponse(w ht
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchApiTasksId400JSONResponse ErrorResponse
+type PatchApiTasksId400JSONResponse MsgResponse
 
 func (response PatchApiTasksId400JSONResponse) VisitPatchApiTasksIdResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -222,12 +224,13 @@ func (response PatchApiTasksId400JSONResponse) VisitPatchApiTasksIdResponse(w ht
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PatchApiTasksId404Response struct {
-}
+type PatchApiTasksId404JSONResponse MsgResponse
 
-func (response PatchApiTasksId404Response) VisitPatchApiTasksIdResponse(w http.ResponseWriter) error {
+func (response PatchApiTasksId404JSONResponse) VisitPatchApiTasksIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 // StrictServerInterface represents all server handlers.
@@ -238,10 +241,10 @@ type StrictServerInterface interface {
 	// Create a new task
 	// (POST /api/tasks)
 	PostApiTasks(ctx context.Context, request PostApiTasksRequestObject) (PostApiTasksResponseObject, error)
-	// Delete a task
+	// Delete task
 	// (DELETE /api/tasks/{id})
 	DeleteApiTasksId(ctx context.Context, request DeleteApiTasksIdRequestObject) (DeleteApiTasksIdResponseObject, error)
-	// Update a task
+	// Update task
 	// (PATCH /api/tasks/{id})
 	PatchApiTasksId(ctx context.Context, request PatchApiTasksIdRequestObject) (PatchApiTasksIdResponseObject, error)
 }

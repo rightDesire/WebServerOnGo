@@ -82,7 +82,8 @@ func (h *Handler) PatchApiTasksId(ctx context.Context, request tasks.PatchApiTas
 		}
 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return tasks.PatchApiTasksId404Response{}, nil
+			errorMsg := "Task not found"
+			return tasks.PatchApiTasksId404JSONResponse{Message: &errorMsg}, nil
 		}
 		return nil, err
 	}
@@ -99,10 +100,12 @@ func (h *Handler) PatchApiTasksId(ctx context.Context, request tasks.PatchApiTas
 func (h *Handler) DeleteApiTasksId(ctx context.Context, request tasks.DeleteApiTasksIdRequestObject) (tasks.DeleteApiTasksIdResponseObject, error) {
 	if err := h.Service.DeleteTaskByID(request.Id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return tasks.DeleteApiTasksId404Response{}, nil
+			errorMsg := "Task not found"
+			return tasks.DeleteApiTasksId404JSONResponse{Message: &errorMsg}, nil
 		}
 		return nil, err
 	}
 
-	return tasks.DeleteApiTasksId204Response{}, nil
+	errorMsg := "Task deleted"
+	return tasks.DeleteApiTasksId200JSONResponse{Message: &errorMsg}, nil
 }
