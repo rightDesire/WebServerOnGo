@@ -24,6 +24,7 @@ type Task struct {
 	Id     *uint   `json:"id,omitempty"`
 	IsDone *bool   `json:"is_done,omitempty"`
 	Task   *string `json:"task,omitempty"`
+	UserId *uint   `json:"user_id,omitempty"`
 }
 
 // PostApiTasksJSONRequestBody defines body for PostApiTasks for application/json ContentType.
@@ -40,6 +41,9 @@ type ServerInterface interface {
 	// Create a new task
 	// (POST /api/tasks)
 	PostApiTasks(ctx echo.Context) error
+	// Get all tasks for user
+	// (GET /api/tasks/by/{user-id})
+	GetApiTasksByUserId(ctx echo.Context, userId uint) error
 	// Delete task
 	// (DELETE /api/tasks/{id})
 	DeleteApiTasksId(ctx echo.Context, id uint) error
@@ -68,6 +72,22 @@ func (w *ServerInterfaceWrapper) PostApiTasks(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PostApiTasks(ctx)
+	return err
+}
+
+// GetApiTasksByUserId converts echo context to params.
+func (w *ServerInterfaceWrapper) GetApiTasksByUserId(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "user-id" -------------
+	var userId uint
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "user-id", runtime.ParamLocationPath, ctx.Param("user-id"), &userId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user-id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetApiTasksByUserId(ctx, userId)
 	return err
 }
 
@@ -133,6 +153,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/api/tasks", wrapper.GetApiTasks)
 	router.POST(baseURL+"/api/tasks", wrapper.PostApiTasks)
+	router.GET(baseURL+"/api/tasks/by/:user-id", wrapper.GetApiTasksByUserId)
 	router.DELETE(baseURL+"/api/tasks/:id", wrapper.DeleteApiTasksId)
 	router.PATCH(baseURL+"/api/tasks/:id", wrapper.PatchApiTasksId)
 
@@ -167,6 +188,23 @@ type PostApiTasks201JSONResponse Task
 func (response PostApiTasks201JSONResponse) VisitPostApiTasksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetApiTasksByUserIdRequestObject struct {
+	UserId uint `json:"user-id"`
+}
+
+type GetApiTasksByUserIdResponseObject interface {
+	VisitGetApiTasksByUserIdResponse(w http.ResponseWriter) error
+}
+
+type GetApiTasksByUserId200JSONResponse []Task
+
+func (response GetApiTasksByUserId200JSONResponse) VisitGetApiTasksByUserIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -240,6 +278,9 @@ type StrictServerInterface interface {
 	// Create a new task
 	// (POST /api/tasks)
 	PostApiTasks(ctx context.Context, request PostApiTasksRequestObject) (PostApiTasksResponseObject, error)
+	// Get all tasks for user
+	// (GET /api/tasks/by/{user-id})
+	GetApiTasksByUserId(ctx context.Context, request GetApiTasksByUserIdRequestObject) (GetApiTasksByUserIdResponseObject, error)
 	// Delete task
 	// (DELETE /api/tasks/{id})
 	DeleteApiTasksId(ctx context.Context, request DeleteApiTasksIdRequestObject) (DeleteApiTasksIdResponseObject, error)
@@ -306,6 +347,31 @@ func (sh *strictHandler) PostApiTasks(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(PostApiTasksResponseObject); ok {
 		return validResponse.VisitPostApiTasksResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetApiTasksByUserId operation middleware
+func (sh *strictHandler) GetApiTasksByUserId(ctx echo.Context, userId uint) error {
+	var request GetApiTasksByUserIdRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.GetApiTasksByUserId(ctx.Request().Context(), request.(GetApiTasksByUserIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetApiTasksByUserId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetApiTasksByUserIdResponseObject); ok {
+		return validResponse.VisitGetApiTasksByUserIdResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}

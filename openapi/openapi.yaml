@@ -93,6 +93,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MsgResponse"
+  /api/tasks/by/{user-id}:
+    get:
+      summary: Get all tasks for user
+      parameters:
+        - name: user-id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: uint
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: A list of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
   /api/users:
     get:
       summary: Get all users
@@ -196,6 +217,9 @@ components:
           type: string
         is_done:
           type: boolean
+        user_id:
+          type: integer
+          format: uint
     User:
       type: object
       properties:

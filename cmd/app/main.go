@@ -17,10 +17,11 @@ func main() {
 
 	tasksRepo := tasksService.NewRepository(database.DB)
 	tasksServ := tasksService.NewService(tasksRepo)
-	tasksHandler := handlers.NewTaskHandler(tasksServ)
 
 	usersRepo := usersService.NewRepository(database.DB)
 	usersServ := usersService.NewService(usersRepo)
+
+	tasksHandler := handlers.NewTaskHandler(tasksServ, usersServ)
 	usersHandler := handlers.NewUserHandler(usersServ)
 
 	// Инициализируем echo
