@@ -85,6 +85,7 @@ func (h *TaskHandler) PostApiTasks(ctx context.Context, request tasks.PostApiTas
 	// создаем структуру ответа
 	response := tasks.PostApiTasks201JSONResponse{
 		Id:     &createdTask.ID,
+		UserId: &createdTask.UserId,
 		Task:   &createdTask.Task,
 		IsDone: createdTask.IsDone,
 	}

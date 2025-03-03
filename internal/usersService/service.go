@@ -19,7 +19,7 @@ func (s *UserService) GetAllUsers() ([]User, error) { return s.repo.GetAllUsers(
 func (s *UserService) GetTasksForUser(userID uint, tasks []tasksService.Task) ([]tasksService.Task, error) {
 	var response []tasksService.Task
 	for _, task := range tasks {
-		if task.ID == userID {
+		if task.UserId == userID {
 			response = append(response, task)
 		}
 	}
