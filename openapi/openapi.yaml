@@ -93,7 +93,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MsgResponse"
-  /api/tasks/by/{user-id}:
+  /api/users/{user-id}/tasks:
     get:
       summary: Get all tasks for user
       parameters:
@@ -107,13 +107,11 @@ paths:
         - tasks
       responses:
         '200':
-          description: A list of tasks
+          description: User with tasks
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Task'
+                $ref: '#/components/schemas/User'
   /api/users:
     get:
       summary: Get all users
@@ -230,6 +228,10 @@ components:
           type: string
         password:
           type: string
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
     MsgResponse:
       type: object
       properties:

@@ -24,25 +24,26 @@ func NewTaskHandler(taskService *tasksService.TaskService, userService *usersSer
 	}
 }
 
-func (h *TaskHandler) GetApiTasksByUserId(ctx context.Context, request tasks.GetApiTasksByUserIdRequestObject) (tasks.GetApiTasksByUserIdResponseObject, error) {
-	allTasks, err := h.TaskService.GetAllTasks()
+func (h *TaskHandler) GetApiUsersUserIdTasks(ctx context.Context, request tasks.GetApiUsersUserIdTasksRequestObject) (tasks.GetApiUsersUserIdTasksResponseObject, error) {
+	user, err := h.UserService.GetTasksForUser(request.UserId)
 	if err != nil {
 		return nil, err
 	}
-	tasksByUserId, err := h.UserService.GetTasksForUser(request.UserId, allTasks)
-	if err != nil {
-		return nil, err
+	var tasksForUser []tasks.Task
+	for _, t := range user.Tasks {
+		task := tasks.Task{
+			Id:     &t.ID,
+			Task:   &t.Task,
+			IsDone: t.IsDone,
+		}
+		tasksForUser = append(tasksForUser, task)
 	}
 
-	response := tasks.GetApiTasksByUserId200JSONResponse{}
-	for _, tsk := range tasksByUserId {
-		task := tasks.Task{
-			Id:     &tsk.ID,
-			UserId: &tsk.UserId,
-			Task:   &tsk.Task,
-			IsDone: tsk.IsDone,
-		}
-		response = append(response, task)
+	response := tasks.GetApiUsersUserIdTasks200JSONResponse{
+		Id:       &user.ID,
+		Email:    &user.Email,
+		Password: &user.Password,
+		Tasks:    &tasksForUser,
 	}
 	return response, err
 }
@@ -73,7 +74,7 @@ func (h *TaskHandler) PostApiTasks(ctx context.Context, request tasks.PostApiTas
 	taskRequest := request.Body
 	// Обращаемся к сервису и создаем задачу
 	taskToCreate := tasksService.Task{
-		UserId: *taskRequest.UserId,
+		UserID: *taskRequest.UserId,
 		Task:   *taskRequest.Task,
 		IsDone: taskRequest.IsDone,
 	}
@@ -85,7 +86,7 @@ func (h *TaskHandler) PostApiTasks(ctx context.Context, request tasks.PostApiTas
 	// создаем структуру ответа
 	response := tasks.PostApiTasks201JSONResponse{
 		Id:     &createdTask.ID,
-		UserId: &createdTask.UserId,
+		UserId: &createdTask.UserID,
 		Task:   &createdTask.Task,
 		IsDone: createdTask.IsDone,
 	}

@@ -19,11 +19,20 @@ type MsgResponse struct {
 	Message *string `json:"message,omitempty"`
 }
 
+// Task defines model for Task.
+type Task struct {
+	Id     *uint   `json:"id,omitempty"`
+	IsDone *bool   `json:"is_done,omitempty"`
+	Task   *string `json:"task,omitempty"`
+	UserId *uint   `json:"user_id,omitempty"`
+}
+
 // User defines model for User.
 type User struct {
 	Email    *string `json:"email,omitempty"`
 	Id       *uint   `json:"id,omitempty"`
 	Password *string `json:"password,omitempty"`
+	Tasks    *[]Task `json:"tasks,omitempty"`
 }
 
 // PostApiUsersJSONRequestBody defines body for PostApiUsers for application/json ContentType.
