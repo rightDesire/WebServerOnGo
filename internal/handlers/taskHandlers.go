@@ -3,7 +3,6 @@ package handlers
 import (
 	"WebServer/internal/errorMessages"
 	"WebServer/internal/tasksService"
-	"WebServer/internal/usersService"
 	"WebServer/internal/web/tasks"
 	"context"
 	"errors"
@@ -12,45 +11,19 @@ import (
 )
 
 type TaskHandler struct {
-	TaskService *tasksService.TaskService
-	UserService *usersService.UserService
+	Service *tasksService.TaskService
 }
 
 // ctor
-func NewTaskHandler(taskService *tasksService.TaskService, userService *usersService.UserService) *TaskHandler {
+func NewTaskHandler(taskService *tasksService.TaskService) *TaskHandler {
 	return &TaskHandler{
-		TaskService: taskService,
-		UserService: userService,
+		Service: taskService,
 	}
-}
-
-func (h *TaskHandler) GetApiUsersUserIdTasks(ctx context.Context, request tasks.GetApiUsersUserIdTasksRequestObject) (tasks.GetApiUsersUserIdTasksResponseObject, error) {
-	user, err := h.UserService.GetTasksForUser(request.UserId)
-	if err != nil {
-		return nil, err
-	}
-	var tasksForUser []tasks.Task
-	for _, t := range user.Tasks {
-		task := tasks.Task{
-			Id:     &t.ID,
-			Task:   &t.Task,
-			IsDone: t.IsDone,
-		}
-		tasksForUser = append(tasksForUser, task)
-	}
-
-	response := tasks.GetApiUsersUserIdTasks200JSONResponse{
-		Id:       &user.ID,
-		Email:    &user.Email,
-		Password: &user.Password,
-		Tasks:    &tasksForUser,
-	}
-	return response, err
 }
 
 func (h *TaskHandler) GetApiTasks(ctx context.Context, request tasks.GetApiTasksRequestObject) (tasks.GetApiTasksResponseObject, error) {
 	// Получение всех задач из сервиса
-	allTasks, err := h.TaskService.GetAllTasks()
+	allTasks, err := h.Service.GetAllTasks()
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +51,7 @@ func (h *TaskHandler) PostApiTasks(ctx context.Context, request tasks.PostApiTas
 		Task:   *taskRequest.Task,
 		IsDone: taskRequest.IsDone,
 	}
-	createdTask, err := h.TaskService.CreateTask(taskToCreate)
+	createdTask, err := h.Service.CreateTask(taskToCreate)
 
 	if err != nil {
 		return nil, err
@@ -105,7 +78,7 @@ func (h *TaskHandler) PatchApiTasksId(ctx context.Context, request tasks.PatchAp
 		taskToUpdate.IsDone = taskRequest.IsDone
 	}
 
-	task, err := h.TaskService.UpdateTaskByID(request.Id, taskToUpdate)
+	task, err := h.Service.UpdateTaskByID(request.Id, taskToUpdate)
 	if err != nil {
 		if errors.Is(err, errorMessages.ErrNoFieldsToUpdate) {
 			errorMsg := "No fields to update"
@@ -132,7 +105,7 @@ func (h *TaskHandler) PatchApiTasksId(ctx context.Context, request tasks.PatchAp
 }
 
 func (h *TaskHandler) DeleteApiTasksId(ctx context.Context, request tasks.DeleteApiTasksIdRequestObject) (tasks.DeleteApiTasksIdResponseObject, error) {
-	if err := h.TaskService.DeleteTaskByID(request.Id); err != nil {
+	if err := h.Service.DeleteTaskByID(request.Id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			errorMsg := "Task not found"
 			return tasks.DeleteApiTasksId404JSONResponse{Message: &errorMsg}, nil

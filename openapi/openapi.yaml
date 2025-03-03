@@ -104,7 +104,7 @@ paths:
             type: integer
             format: uint
       tags:
-        - tasks
+        - users
       responses:
         '200':
           description: User with tasks

@@ -20,6 +20,30 @@ func NewUserHandler(service *usersService.UserService) *UserHandler {
 	}
 }
 
+func (h *UserHandler) GetApiUsersUserIdTasks(ctx context.Context, request users.GetApiUsersUserIdTasksRequestObject) (users.GetApiUsersUserIdTasksResponseObject, error) {
+	user, err := h.Service.GetTasksForUser(request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	var tasksForUser []users.Task
+	for _, t := range user.Tasks {
+		task := users.Task{
+			Id:     &t.ID,
+			Task:   &t.Task,
+			IsDone: t.IsDone,
+		}
+		tasksForUser = append(tasksForUser, task)
+	}
+
+	response := users.GetApiUsersUserIdTasks200JSONResponse{
+		Id:       &user.ID,
+		Email:    &user.Email,
+		Password: &user.Password,
+		Tasks:    &tasksForUser,
+	}
+	return response, err
+}
+
 func (h UserHandler) GetApiUsers(ctx context.Context, _ users.GetApiUsersRequestObject) (users.GetApiUsersResponseObject, error) {
 	data, err := h.Service.GetAllUsers()
 	if err != nil {

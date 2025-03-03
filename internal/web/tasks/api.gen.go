@@ -27,14 +27,6 @@ type Task struct {
 	UserId *uint   `json:"user_id,omitempty"`
 }
 
-// User defines model for User.
-type User struct {
-	Email    *string `json:"email,omitempty"`
-	Id       *uint   `json:"id,omitempty"`
-	Password *string `json:"password,omitempty"`
-	Tasks    *[]Task `json:"tasks,omitempty"`
-}
-
 // PostApiTasksJSONRequestBody defines body for PostApiTasks for application/json ContentType.
 type PostApiTasksJSONRequestBody = Task
 
@@ -55,9 +47,6 @@ type ServerInterface interface {
 	// Update task
 	// (PATCH /api/tasks/{id})
 	PatchApiTasksId(ctx echo.Context, id uint) error
-	// Get all tasks for user
-	// (GET /api/users/{user-id}/tasks)
-	GetApiUsersUserIdTasks(ctx echo.Context, userId uint) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -115,22 +104,6 @@ func (w *ServerInterfaceWrapper) PatchApiTasksId(ctx echo.Context) error {
 	return err
 }
 
-// GetApiUsersUserIdTasks converts echo context to params.
-func (w *ServerInterfaceWrapper) GetApiUsersUserIdTasks(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "user-id" -------------
-	var userId uint
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "user-id", runtime.ParamLocationPath, ctx.Param("user-id"), &userId)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter user-id: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.GetApiUsersUserIdTasks(ctx, userId)
-	return err
-}
-
 // This is a simple interface which specifies echo.Route addition functions which
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
@@ -163,7 +136,6 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/api/tasks", wrapper.PostApiTasks)
 	router.DELETE(baseURL+"/api/tasks/:id", wrapper.DeleteApiTasksId)
 	router.PATCH(baseURL+"/api/tasks/:id", wrapper.PatchApiTasksId)
-	router.GET(baseURL+"/api/users/:user-id/tasks", wrapper.GetApiUsersUserIdTasks)
 
 }
 
@@ -261,23 +233,6 @@ func (response PatchApiTasksId404JSONResponse) VisitPatchApiTasksIdResponse(w ht
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetApiUsersUserIdTasksRequestObject struct {
-	UserId uint `json:"user-id"`
-}
-
-type GetApiUsersUserIdTasksResponseObject interface {
-	VisitGetApiUsersUserIdTasksResponse(w http.ResponseWriter) error
-}
-
-type GetApiUsersUserIdTasks200JSONResponse User
-
-func (response GetApiUsersUserIdTasks200JSONResponse) VisitGetApiUsersUserIdTasksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get all tasks
@@ -292,9 +247,6 @@ type StrictServerInterface interface {
 	// Update task
 	// (PATCH /api/tasks/{id})
 	PatchApiTasksId(ctx context.Context, request PatchApiTasksIdRequestObject) (PatchApiTasksIdResponseObject, error)
-	// Get all tasks for user
-	// (GET /api/users/{user-id}/tasks)
-	GetApiUsersUserIdTasks(ctx context.Context, request GetApiUsersUserIdTasksRequestObject) (GetApiUsersUserIdTasksResponseObject, error)
 }
 
 type StrictHandlerFunc = strictecho.StrictEchoHandlerFunc
@@ -411,31 +363,6 @@ func (sh *strictHandler) PatchApiTasksId(ctx echo.Context, id uint) error {
 		return err
 	} else if validResponse, ok := response.(PatchApiTasksIdResponseObject); ok {
 		return validResponse.VisitPatchApiTasksIdResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// GetApiUsersUserIdTasks operation middleware
-func (sh *strictHandler) GetApiUsersUserIdTasks(ctx echo.Context, userId uint) error {
-	var request GetApiUsersUserIdTasksRequestObject
-
-	request.UserId = userId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetApiUsersUserIdTasks(ctx.Request().Context(), request.(GetApiUsersUserIdTasksRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetApiUsersUserIdTasks")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(GetApiUsersUserIdTasksResponseObject); ok {
-		return validResponse.VisitGetApiUsersUserIdTasksResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
