@@ -2,6 +2,7 @@ package usersService
 
 import (
 	"WebServer/internal/errorMessages"
+	"WebServer/internal/tasksService"
 	"gorm.io/gorm"
 )
 
@@ -78,12 +79,64 @@ func (repo *userRepository) DeleteUserByID(id uint) error {
 }
 
 func (repo *userRepository) GetTasksByUserID(userID uint) (User, error) {
-	var user User
-	if res := repo.db.Preload("Tasks").First(&user, userID); res.Error != nil {
-		if res.RowsAffected == 0 {
-			return User{}, gorm.ErrRecordNotFound
-		}
+	// Определяем "промежуточную" структуру, в которую будем сканировать результат JOIN.
+	type userTaskRow struct {
+		UserID   uint   `gorm:"column:user_id"`
+		Email    string `gorm:"column:email"`
+		Password string `gorm:"column:password"`
+
+		TaskID *uint   `gorm:"column:task_id"`
+		Task   *string `gorm:"column:task"`
+		IsDone *bool   `gorm:"column:is_done"`
+	}
+
+	var rows []userTaskRow
+	res := repo.db.Table("users").
+		Select(`
+            users.id        AS user_id,
+            users.email     AS email,
+            users.password  AS password,
+            tasks.id        AS task_id,
+            tasks.task      AS task,
+            tasks.is_done   AS is_done
+        `).
+		Joins("LEFT JOIN tasks ON tasks.user_id = users.id").
+		Where("users.id = ?", userID).
+		Scan(&rows)
+	if res.Error != nil {
 		return User{}, res.Error
 	}
+
+	// Если ничего не вернулось, значит пользователя с таким id нет
+	if len(rows) == 0 {
+		return User{}, gorm.ErrRecordNotFound
+	}
+
+	// Создаем объект User из первой строки, т.к. данные о пользователе у всех строк будут один и те же
+	user := User{
+		Model: gorm.Model{
+			ID: rows[0].UserID,
+		},
+		Email:    rows[0].Email,
+		Password: rows[0].Password,
+		Tasks:    []tasksService.Task{},
+	}
+
+	// Перебираем все строки и формируем массив Tasks
+	for _, row := range rows {
+		// Если в строке нет TaskID (NULL в базе),
+		// значит у этого пользователя пока нет связанной задачи
+		if row.TaskID != nil {
+			user.Tasks = append(user.Tasks, tasksService.Task{
+				Model: gorm.Model{
+					ID: *row.TaskID,
+				},
+				Task:   *row.Task,
+				IsDone: row.IsDone,
+				UserID: row.UserID,
+			})
+		}
+	}
+
 	return user, nil
 }
