@@ -17,7 +17,7 @@ func (s *UserService) CreateUser(user User) (User, error) { return s.repo.Create
 func (s *UserService) GetAllUsers() ([]User, error) { return s.repo.GetAllUsers() }
 
 func (s *UserService) GetTasksForUser(userId uint) ([]tasksService.Task, error) {
-	user, err := s.repo.GetTasksByUserId(userId)
+	user, err := s.repo.GetTasksByUserID(userId)
 	return user.Tasks, err
 }
 

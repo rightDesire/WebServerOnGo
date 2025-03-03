@@ -10,7 +10,7 @@ type UserRepository interface {
 	GetAllUsers() ([]User, error)
 	UpdateUserByID(id uint, user User) (User, error)
 	DeleteUserByID(id uint) error
-	GetTasksByUserId(userID uint) (User, error)
+	GetTasksByUserID(userID uint) (User, error)
 }
 
 type userRepository struct {
@@ -77,7 +77,7 @@ func (repo *userRepository) DeleteUserByID(id uint) error {
 	return nil
 }
 
-func (repo *userRepository) GetTasksByUserId(userID uint) (User, error) {
+func (repo *userRepository) GetTasksByUserID(userID uint) (User, error) {
 	var user User
 	if res := repo.db.Preload("Tasks").First(&user, userID); res.Error != nil {
 		if res.RowsAffected == 0 {
