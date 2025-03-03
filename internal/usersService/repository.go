@@ -2,7 +2,6 @@ package usersService
 
 import (
 	"WebServer/internal/errorMessages"
-	"WebServer/internal/tasksService"
 	"gorm.io/gorm"
 )
 
@@ -11,7 +10,7 @@ type UserRepository interface {
 	GetAllUsers() ([]User, error)
 	UpdateUserByID(id uint, user User) (User, error)
 	DeleteUserByID(id uint) error
-	GetTasksByUserId(userID uint) ([]tasksService.Task, error)
+	GetTasksByUserId(userID uint) (User, error)
 }
 
 type userRepository struct {
@@ -80,8 +79,11 @@ func (repo *userRepository) DeleteUserByID(id uint) error {
 
 func (repo *userRepository) GetTasksByUserId(userID uint) (User, error) {
 	var user User
-	if result := repo.db.Preload("Tasks").First(&user, userID); result.Error != nil {
-		return User{}, result.Error
+	if res := repo.db.Preload("Tasks").First(&user, userID); res.Error != nil {
+		if res.RowsAffected == 0 {
+			return User{}, gorm.ErrRecordNotFound
+		}
+		return User{}, res.Error
 	}
 	return user, nil
 }

@@ -21,25 +21,23 @@ func NewUserHandler(service *usersService.UserService) *UserHandler {
 }
 
 func (h *UserHandler) GetApiUsersUserIdTasks(ctx context.Context, request users.GetApiUsersUserIdTasksRequestObject) (users.GetApiUsersUserIdTasksResponseObject, error) {
-	user, err := h.Service.GetTasksForUser(request.UserId)
+	tasks, err := h.Service.GetTasksForUser(request.UserId)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			errorMsg := "User not found"
+			return users.GetApiUsersUserIdTasks404JSONResponse{Message: &errorMsg}, nil
+		}
 		return nil, err
 	}
-	var tasksForUser []users.Task
-	for _, t := range user.Tasks {
-		task := users.Task{
-			Id:     &t.ID,
-			Task:   &t.Task,
-			IsDone: t.IsDone,
-		}
-		tasksForUser = append(tasksForUser, task)
-	}
 
-	response := users.GetApiUsersUserIdTasks200JSONResponse{
-		Id:       &user.ID,
-		Email:    &user.Email,
-		Password: &user.Password,
-		Tasks:    &tasksForUser,
+	var response users.GetApiUsersUserIdTasks200JSONResponse
+	for _, tsk := range tasks {
+		task := users.Task{
+			Id:     &tsk.ID,
+			Task:   &tsk.Task,
+			IsDone: tsk.IsDone,
+		}
+		response = append(response, task)
 	}
 	return response, err
 }

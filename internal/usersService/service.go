@@ -1,5 +1,7 @@
 package usersService
 
+import "WebServer/internal/tasksService"
+
 type UserService struct {
 	repo *userRepository
 }
@@ -14,8 +16,9 @@ func (s *UserService) CreateUser(user User) (User, error) { return s.repo.Create
 
 func (s *UserService) GetAllUsers() ([]User, error) { return s.repo.GetAllUsers() }
 
-func (s *UserService) GetTasksForUser(userID uint) (User, error) {
-	return s.repo.GetTasksByUserId(userID)
+func (s *UserService) GetTasksForUser(userId uint) ([]tasksService.Task, error) {
+	user, err := s.repo.GetTasksByUserId(userId)
+	return user.Tasks, err
 }
 
 func (s *UserService) UpdateUserByID(id uint, user User) (User, error) {

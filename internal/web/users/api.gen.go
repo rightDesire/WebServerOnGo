@@ -32,7 +32,6 @@ type User struct {
 	Email    *string `json:"email,omitempty"`
 	Id       *uint   `json:"id,omitempty"`
 	Password *string `json:"password,omitempty"`
-	Tasks    *[]Task `json:"tasks,omitempty"`
 }
 
 // PostApiUsersJSONRequestBody defines body for PostApiUsers for application/json ContentType.
@@ -269,11 +268,20 @@ type GetApiUsersUserIdTasksResponseObject interface {
 	VisitGetApiUsersUserIdTasksResponse(w http.ResponseWriter) error
 }
 
-type GetApiUsersUserIdTasks200JSONResponse User
+type GetApiUsersUserIdTasks200JSONResponse []Task
 
 func (response GetApiUsersUserIdTasks200JSONResponse) VisitGetApiUsersUserIdTasksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetApiUsersUserIdTasks404JSONResponse MsgResponse
+
+func (response GetApiUsersUserIdTasks404JSONResponse) VisitGetApiUsersUserIdTasksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
